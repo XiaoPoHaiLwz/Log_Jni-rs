@@ -1,0 +1,44 @@
+
+name: rust-ci
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+
+  android_build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_HOME: ${{ github.workspace }}/android-ndk-r25c
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Rust 环境
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 安装依赖
+        run: sudo apt-get install -y make unzip
+
+      - name: 配置NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip android-ndk-r25c-linux.zip -d ${{ github.workspace }}
+          echo "ANDROID_NDK_HOME=${{ github.workspace }}/android-ndk-r25c" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/android-ndk-r25c/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+
+      - name: 配置环境
+        run: make android-setup
+
+      - name: 编译 Android release版本
+        run: make android-build
+
+      - name: 上传Caodong Android版本
+        uses: actions/upload-artifact@v4
+        with:
+          name: libtainakaritsu_hook_log.so
+          path: target/aarch64-linux-android/release/libtainakaritsu_hook_log.so
